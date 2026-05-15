@@ -1,0 +1,11 @@
+# config
+jdbcUrl = jdbc:mysql://localhost:3306/shop_operate_system_db?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+user = root
+password = 123456
+devMode = true
+
+appId =
+appSecret =
+
+cryptKey = 123456
+tokenExpireSeconds = 86400
