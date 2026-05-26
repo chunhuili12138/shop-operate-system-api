@@ -105,9 +105,10 @@ public class ShopController extends Controller {
         Integer maxCapacity = getParaToInt("maxCapacity");
         String description = getPara("description");
         String signPhoto = getPara("signPhoto");
+        String logo = getPara("logo");
 
         try {
-            boolean success = shopService.update(shopId, name, address, contactPhone, maxCapacity, description, signPhoto);
+            boolean success = shopService.update(shopId, name, address, contactPhone, maxCapacity, description, signPhoto, logo);
             if (success) {
                 renderJson(new ApiReturn().success());
             } else {
@@ -180,9 +181,10 @@ public class ShopController extends Controller {
         Integer maxCapacity = getParaToInt("maxCapacity");
         String description = getPara("description");
         String signPhoto = getPara("signPhoto");
+        String logo = getPara("logo");
 
         try {
-            boolean success = shopService.update(shopId, name, address, contactPhone, maxCapacity, description, signPhoto);
+            boolean success = shopService.update(shopId, name, address, contactPhone, maxCapacity, description, signPhoto, logo);
             if (success) {
                 renderJson(new ApiReturn().success());
             } else {

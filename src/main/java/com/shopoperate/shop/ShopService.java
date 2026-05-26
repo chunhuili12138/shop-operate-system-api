@@ -105,7 +105,7 @@ public class ShopService {
     }
 
     public boolean update(BigInteger shopId, String name, String address,
-                           String contactPhone, Integer maxCapacity, String description, String signPhoto) {
+                           String contactPhone, Integer maxCapacity, String description, String signPhoto, String logo) {
         Record shop = Db.findById("shops", shopId);
         if (shop == null) return false;
 
@@ -115,6 +115,7 @@ public class ShopService {
         if (maxCapacity != null) shop.set("max_capacity", maxCapacity);
         if (description != null) shop.set("description", description);
         if (signPhoto != null) shop.set("sign_photo", signPhoto);
+        if (logo != null) shop.set("logo", logo);
         shop.set("updated_at", new Date());
 
         return Db.update("shops", shop);
@@ -271,11 +272,18 @@ public class ShopService {
 
         boolean ok = com.shopoperate.utils.WechatApiUtil.generateWxaCode(scene, page, 430, outputPath);
         if (ok) {
+            // 合成 Logo 到太阳码中心
+            String logoPath = shop.getStr("logo");
+            if (logoPath != null && !logoPath.isEmpty()) {
+                String logoFullPath = "C:/shop-operate/" + logoPath;
+                com.shopoperate.utils.WechatApiUtil.overlayLogoOnQrcode(outputPath, logoFullPath, outputPath);
+            }
+
             shop.set("mp_qrcode_path", fileName);
             shop.set("updated_at", new Date());
             Db.update("shops", shop);
             return fileName;
         }
-        return shop.getStr("mp_qrcode_path"); // 返回旧路径
+        return shop.getStr("mp_qrcode_path");
     }
 }

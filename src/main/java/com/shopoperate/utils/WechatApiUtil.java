@@ -13,6 +13,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.geom.RoundRectangle2D;
 
 /**
  * 微信 API 工具类
@@ -137,5 +141,49 @@ public class WechatApiUtil {
         }
         conn.disconnect();
         return baos.toByteArray();
+    }
+
+    /**
+     * 将 Logo 图片合成到太阳码中心（圆形裁剪 + 白边）
+     * @param qrcodePath 太阳码图片路径
+     * @param logoPath   Logo 图片路径
+     * @param outputPath 输出图片路径
+     */
+    public static void overlayLogoOnQrcode(String qrcodePath, String logoPath, String outputPath) {
+        try {
+            BufferedImage qrcode = ImageIO.read(new File(qrcodePath));
+            File logoFile = new File(logoPath);
+            if (!logoFile.exists()) return;
+            BufferedImage logo = ImageIO.read(logoFile);
+
+            int qrSize = qrcode.getWidth();
+            int logoSize = (int) (qrSize * 0.22); // Logo 占 22%
+            int logoX = (qrSize - logoSize) / 2;
+            int logoY = (qrSize - logoSize) / 2;
+
+            Graphics2D g = qrcode.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // 白底圆形
+            int padding = 4;
+            g.setColor(Color.WHITE);
+            g.fill(new RoundRectangle2D.Float(logoX - padding, logoY - padding,
+                logoSize + padding * 2, logoSize + padding * 2, logoSize / 4, logoSize / 4));
+
+            // 裁剪为圆形
+            BufferedImage rounded = new BufferedImage(logoSize, logoSize, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = rounded.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setClip(new RoundRectangle2D.Float(0, 0, logoSize, logoSize, logoSize / 4, logoSize / 4));
+            g2.drawImage(logo.getScaledInstance(logoSize, logoSize, Image.SCALE_SMOOTH), 0, 0, null);
+            g2.dispose();
+
+            g.drawImage(rounded, logoX, logoY, null);
+            g.dispose();
+
+            ImageIO.write(qrcode, "png", new File(outputPath));
+        } catch (Exception e) {
+            log.warn("合成Logo到太阳码失败: " + e.getMessage());
+        }
     }
 }

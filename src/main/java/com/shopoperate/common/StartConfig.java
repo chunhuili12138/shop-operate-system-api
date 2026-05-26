@@ -98,6 +98,33 @@ public class StartConfig extends JFinalConfig {
 	public void configPlugin(Plugins me) {
 		// 配置 druid 数据库连接池插件
 		DruidPlugin druidPlugin = new DruidPlugin(p.get("jdbcUrl"), p.get("user"), p.get("password"));
+		
+		// 配置连接池大小
+		druidPlugin.setInitialSize(5);
+		druidPlugin.setMinIdle(5);
+		druidPlugin.setMaxActive(20);
+		
+		// 配置获取连接等待超时的时间
+		druidPlugin.setMaxWait(60000);
+		
+		// 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+		druidPlugin.setTimeBetweenEvictionRunsMillis(60000);
+		
+		// 配置一个连接在池中最小生存的时间，单位是毫秒
+		druidPlugin.setMinEvictableIdleTimeMillis(300000);
+		
+		// 配置连接保活机制
+		druidPlugin.setKeepAlive(true);
+		
+		// 配置连接有效性检测
+		druidPlugin.setTestWhileIdle(true);
+		druidPlugin.setTestOnBorrow(false);
+		druidPlugin.setTestOnReturn(false);
+		
+		// 配置验证查询
+		druidPlugin.setValidationQuery("SELECT 1");
+		druidPlugin.setValidationQueryTimeout(3);
+		
 		me.add(druidPlugin);
 		
 		// 配置ActiveRecord插件
