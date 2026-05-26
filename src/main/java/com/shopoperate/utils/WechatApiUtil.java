@@ -157,25 +157,28 @@ public class WechatApiUtil {
             BufferedImage logo = ImageIO.read(logoFile);
 
             int qrSize = qrcode.getWidth();
-            int logoSize = (int) (qrSize * 0.22); // Logo 占 22%
+            int logoSize = (int) (qrSize * 0.42);
             int logoX = (qrSize - logoSize) / 2;
             int logoY = (qrSize - logoSize) / 2;
 
             Graphics2D g = qrcode.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-            // 白底圆形
-            int padding = 4;
+            // 纯圆白底（2px 白边）
+            int bgSize = logoSize + 4;
+            int bgRadius = bgSize;
             g.setColor(Color.WHITE);
-            g.fill(new RoundRectangle2D.Float(logoX - padding, logoY - padding,
-                logoSize + padding * 2, logoSize + padding * 2, logoSize / 4, logoSize / 4));
+            g.fill(new RoundRectangle2D.Float(logoX - 2, logoY - 2, bgSize, bgSize, bgRadius, bgRadius));
 
-            // 裁剪为圆形
+            // 纯圆 Logo 裁剪
             BufferedImage rounded = new BufferedImage(logoSize, logoSize, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = rounded.createGraphics();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setClip(new RoundRectangle2D.Float(0, 0, logoSize, logoSize, logoSize / 4, logoSize / 4));
-            g2.drawImage(logo.getScaledInstance(logoSize, logoSize, Image.SCALE_SMOOTH), 0, 0, null);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            int logoRadius = logoSize;
+            g2.setClip(new RoundRectangle2D.Float(0, 0, logoSize, logoSize, logoRadius, logoRadius));
+            g2.drawImage(logo, 0, 0, logoSize, logoSize, null);
             g2.dispose();
 
             g.drawImage(rounded, logoX, logoY, null);

@@ -41,6 +41,7 @@ class MpHelper {
         m.put("durationMinutes", p.getInt("duration_minutes"));
         m.put("maxPeoplePerSession", p.getInt("max_people_per_session"));
         m.put("description", p.getStr("description"));
+        m.put("image", p.getStr("image"));
         m.put("isActive", p.getInt("is_active"));
         return m;
     }

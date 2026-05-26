@@ -50,7 +50,8 @@ public class PackageController extends Controller {
             boolean ok = s.add(u.getLoginShopId(), name.trim(), getParaToInt("type",1),
                 duration, new BigDecimal(getPara("price","0")),
                 parseDecimal("originalPrice"),
-                getParaToInt("maxPeoplePerSession",1), getPara("description"), parseBom());
+                getParaToInt("maxPeoplePerSession",1), getPara("description"),
+                getPara("image"), parseBom());
             renderJson(ok ? new ApiReturn().success() : new ApiReturn().addMsg("套餐名已存在或新增失败").fail());
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
@@ -67,7 +68,7 @@ public class PackageController extends Controller {
             boolean ok = s.update(getBigInteger("packageId"), name != null ? name.trim() : null, getParaToInt("type"),
                 duration, getPara("price")!=null?new BigDecimal(getPara("price")):null,
                 parseDecimal("originalPrice"),
-                getParaToInt("maxPeoplePerSession"), getPara("description"), parseBom(), u.getLoginShopId());
+                getParaToInt("maxPeoplePerSession"), getPara("description"), getPara("image"), parseBom(), u.getLoginShopId());
             renderJson(ok ? new ApiReturn().success() : new ApiReturn().addMsg("套餐不存在").fail());
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }

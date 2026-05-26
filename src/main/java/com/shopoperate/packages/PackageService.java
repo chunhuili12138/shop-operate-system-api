@@ -35,15 +35,14 @@ public class PackageService {
     }
 
     public boolean add(BigInteger shopId, String name, int type, Integer duration, BigDecimal price,
-                       BigDecimal originalPrice, int maxPeople, String description, List<Record> bom) {
-        // 检查同名套餐
+                       BigDecimal originalPrice, int maxPeople, String description, String image, List<Record> bom) {
         long dup = Db.queryLong("SELECT COUNT(*) FROM packages WHERE shop_id=? AND name=? AND is_deleted=0", shopId, name);
         if (dup > 0) return false;
         return Db.tx(() -> {
             Record p = new Record().set("shop_id",shopId).set("name",name).set("type",type)
                 .set("duration_minutes",duration).set("price",price).set("original_price",originalPrice)
                 .set("max_people_per_session",maxPeople)
-                .set("description",description).set("is_active",1).set("is_deleted",0)
+                .set("description",description).set("image",image).set("is_active",1).set("is_deleted",0)
                 .set("created_at",new Date()).set("updated_at",new Date());
             Db.save("packages", p);
             BigInteger pid = p.getBigInteger("id");
@@ -59,7 +58,7 @@ public class PackageService {
     }
 
     public boolean update(BigInteger id, String name, Integer type, Integer duration, BigDecimal price,
-                          BigDecimal originalPrice, Integer maxPeople, String description, List<Record> bom, BigInteger shopId) {
+                          BigDecimal originalPrice, Integer maxPeople, String description, String image, List<Record> bom, BigInteger shopId) {
         return Db.tx(() -> {
             Record p = Db.findFirst("SELECT * FROM packages WHERE id=? AND is_deleted=0 FOR UPDATE", id);
             if (p == null) return false;
@@ -74,6 +73,7 @@ public class PackageService {
             if (originalPrice != null) p.set("original_price",originalPrice);
             if (maxPeople != null) p.set("max_people_per_session",maxPeople);
             if (description != null) p.set("description",description);
+            if (image != null) p.set("image",image);
             p.set("updated_at",new Date());
             Db.update("packages", p);
             if (bom != null) {

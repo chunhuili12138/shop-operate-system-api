@@ -701,35 +701,13 @@ public class SystemService {
      * 根据 openid 查询可访问的店铺列表（顾客 + 员工双来源）
      */
     private List<Record> getMpShopsByOpenid(String openId) {
-        Set<BigInteger> shopIds = new LinkedHashSet<>();
-        List<Record> result = new ArrayList<>();
-
-        // 来源1：customers 表中该 openid 关联的店铺
-        List<Record> customerShops = Db.find(
-            "SELECT s.* FROM shops s " +
-            "INNER JOIN customers c ON s.id = c.shop_id " +
-            "WHERE c.wechat_openid = ? AND c.is_deleted = 0 AND s.is_deleted = 0",
-            openId);
-        for (Record s : customerShops) {
-            if (shopIds.add(s.getBigInteger("id"))) {
-                result.add(s);
-            }
-        }
-
-        // 来源2：staff_accounts → staff_shops → shops
-        List<Record> staffShops = Db.find(
-            "SELECT s.* FROM shops s " +
-            "INNER JOIN staff_shops ss ON s.id = ss.shop_id " +
-            "INNER JOIN staff_accounts sa ON sa.staff_id = ss.staff_id " +
-            "WHERE sa.wechat_openid = ? AND s.is_deleted = 0 AND sa.is_deleted = 0",
-            openId);
-        for (Record s : staffShops) {
-            if (shopIds.add(s.getBigInteger("id"))) {
-                result.add(s);
-            }
-        }
-
-        return result;
+        return Db.find(
+            "SELECT s.*, " +
+            "CASE WHEN s.seat_id IS NOT NULL AND ss.status = 1 AND ss.end_date >= CURDATE() THEN 1 ELSE 0 END AS seat_valid " +
+            "FROM shops s " +
+            "LEFT JOIN seat_subscriptions ss ON s.seat_id = ss.id " +
+            "WHERE s.is_deleted = 0 " +
+            "ORDER BY s.status DESC, seat_valid DESC, s.created_at DESC");
     }
 
     /**

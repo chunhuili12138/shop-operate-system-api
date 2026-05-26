@@ -101,16 +101,23 @@ public class MpShopController extends Controller {
                 return;
             }
 
-            // 检查席位是否到期
-            Record seat = Db.findFirst(
-                "SELECT * FROM seat_subscriptions WHERE id = ? AND status = 1 AND end_date >= CURDATE()",
-                shop.getBigInteger("seat_id"));
-            if (shop.getBigInteger("seat_id") != null && seat == null) {
-                renderJson(new ApiReturn().addData("valid", false).addData("reason", "订阅已到期，请联系管理员续费").success());
-                return;
+            // 检查席位到期（提醒但不阻止进入）
+            java.util.Map<String, Object> seatWarn = null;
+            if (shop.getBigInteger("seat_id") != null) {
+                Record seat = Db.findFirst(
+                    "SELECT * FROM seat_subscriptions WHERE id = ? AND status = 1 AND end_date >= CURDATE()",
+                    shop.getBigInteger("seat_id"));
+                if (seat == null) {
+                    seatWarn = new HashMap<>();
+                    seatWarn.put("type", "seat_expired");
+                    seatWarn.put("message", "该店铺席位已到期，功能可能受限，请联系管理员续费");
+                }
             }
 
-            renderJson(new ApiReturn().addData("valid", true).success());
+            renderJson(new ApiReturn()
+                .addData("valid", true)
+                .addData("warning", seatWarn != null ? seatWarn.get("message") : null)
+                .success());
         } catch (Exception e) {
             log.error("校验店铺异常", e);
             renderJson(new ApiReturn().addMsg("系统异常").serverErr());
