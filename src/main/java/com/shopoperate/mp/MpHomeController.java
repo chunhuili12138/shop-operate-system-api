@@ -75,15 +75,7 @@ public class MpHomeController extends Controller {
 
             List<Map<String, Object>> packages = new ArrayList<>();
             for (Record p : hotPackages) {
-                Map<String, Object> pkg = new HashMap<>();
-                pkg.put("id", p.getBigInteger("id"));
-                pkg.put("name", p.getStr("name"));
-                pkg.put("type", p.getInt("type"));
-                pkg.put("price", p.getBigDecimal("price"));
-                pkg.put("originalPrice", p.getBigDecimal("original_price"));
-                pkg.put("durationMinutes", p.getInt("duration_minutes"));
-                pkg.put("description", p.getStr("description"));
-                packages.add(pkg);
+                packages.add(MpHelper.packageToMap(p));
             }
             data.put("hotPackages", packages);
 
