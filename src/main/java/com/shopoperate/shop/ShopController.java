@@ -272,6 +272,27 @@ public class ShopController extends Controller {
         }
     }
 
+    @RequireLogin
+    @MethodValidation("POST")
+    public void qrcode() {
+        BigInteger shopId = getParaToBigInteger("shopsId");
+        if (shopId == null) {
+            renderJson(new ApiReturn().addMsg("shopId不能为空").fail());
+            return;
+        }
+        try {
+            String path = shopService.generateMpQrcode(shopId);
+            if (path != null) {
+                renderJson(new ApiReturn().addData("path", path).addData("url", path != null ? "/file/image?name=" + path : "").success());
+            } else {
+                renderJson(new ApiReturn().addMsg("生成太阳码失败，请检查微信配置").fail());
+            }
+        } catch (Exception e) {
+            logger.error("生成太阳码异常", e);
+            renderJson(new ApiReturn().addMsg("系统异常：" + e.getMessage()).serverErr());
+        }
+    }
+
     private BigInteger getParaToBigInteger(String name) {
         String val = getPara(name);
         if (val == null || val.isEmpty()) return null;

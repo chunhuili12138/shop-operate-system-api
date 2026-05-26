@@ -41,9 +41,10 @@ public class AppCustomerService {
                 Db.update("customers", target);
             }
 
-            // 无源顾客则直接发放新人券后返回
+            // 无源顾客则发放新人券 + 员工识别后返回
             if (source == null) {
                 CouponService.me.autoGrantOnRegister(shopId, targetId);
+                matchStaffByPhoneAndShop(wechatOpenid, phone, shopId);
                 return true;
             }
 
@@ -108,6 +109,9 @@ public class AppCustomerService {
             // 7. 绑定手机后自动发放新人优惠券（per_user_limit 防重复）
             CouponService.me.autoGrantOnRegister(shopId, targetId);
 
+            // 8. 正向员工自动识别
+            matchStaffByPhoneAndShop(wechatOpenid, phone, shopId);
+
             return true;
         });
     }
@@ -147,5 +151,22 @@ public class AppCustomerService {
         Db.save("customer_wallets", w);
 
         return c;
+    }
+
+    /**
+     * 正向员工自动识别：同店铺内顾客 phone 匹配员工 phone → 写入 staff_accounts.wechat_openid
+     */
+    private void matchStaffByPhoneAndShop(String wechatOpenid, String phone, BigInteger shopId) {
+        if (phone == null || phone.isEmpty()) return;
+        Record matchedStaff = Db.findFirst(
+            "SELECT s.* FROM staff s " +
+            "INNER JOIN staff_shops ss ON s.id = ss.staff_id " +
+            "WHERE s.phone = ? AND ss.shop_id = ? AND s.is_deleted = 0 AND s.status = 1 LIMIT 1",
+            phone, shopId);
+        if (matchedStaff != null) {
+            Db.update(
+                "UPDATE staff_accounts SET wechat_openid = ? WHERE staff_id = ? AND wechat_openid IS NULL",
+                wechatOpenid, matchedStaff.getBigInteger("id"));
+        }
     }
 }

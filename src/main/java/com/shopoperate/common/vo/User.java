@@ -26,6 +26,10 @@ public class User implements Serializable {
     private String token;          // 登录令牌
     private String refreshToken;   // 刷新令牌
     private Date loginTime;        // 登录时间
+    // === 小程序顾客端扩展 ===
+    private String userType;       // 用户类型: "customer" / "staff" / "admin"
+    private BigInteger customerId; // 顾客ID（userType="customer"时有值）
+    private Integer isStaff;       // 是否也是员工（0否，1是），用于前端条件渲染
     
     public User() {
     }
@@ -161,6 +165,30 @@ public class User implements Serializable {
         this.loginTime = loginTime;
     }
 
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
+    public BigInteger getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(BigInteger customerId) {
+        this.customerId = customerId;
+    }
+
+    public Integer getIsStaff() {
+        return isStaff;
+    }
+
+    public void setIsStaff(Integer isStaff) {
+        this.isStaff = isStaff;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -177,6 +205,9 @@ public class User implements Serializable {
                 ", loginShopId=" + loginShopId +
                 ", token='" + token + '\'' +
                 ", loginTime=" + loginTime +
+                ", userType='" + userType + '\'' +
+                ", customerId=" + customerId +
+                ", isStaff=" + isStaff +
                 '}';
     }
 }

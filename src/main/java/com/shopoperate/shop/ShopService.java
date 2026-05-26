@@ -255,4 +255,27 @@ public class ShopService {
         shop.set("updated_at", new Date());
         return Db.update("shops", shop);
     }
+
+    /**
+     * 生成/刷新店铺太阳码
+     * @return 太阳码相对路径，失败返回 null
+     */
+    public String generateMpQrcode(BigInteger shopId) {
+        Record shop = Db.findById("shops", shopId);
+        if (shop == null || shop.getInt("is_deleted") == 1) return null;
+
+        String scene = "sid=" + shopId;
+        String page = "pages/index/index";
+        String fileName = shopId + "/qrcode.png";
+        String outputPath = "C:/shop-operate/" + fileName;
+
+        boolean ok = com.shopoperate.utils.WechatApiUtil.generateWxaCode(scene, page, 430, outputPath);
+        if (ok) {
+            shop.set("mp_qrcode_path", fileName);
+            shop.set("updated_at", new Date());
+            Db.update("shops", shop);
+            return fileName;
+        }
+        return shop.getStr("mp_qrcode_path"); // 返回旧路径
+    }
 }

@@ -89,46 +89,63 @@ public class TokenInterceptor implements Interceptor {
         JsonObject jsonObject = JsonParser.parseString(infoStr).getAsJsonObject();
         User user = new Gson().fromJson(jsonObject, User.class);
 
-        // ========== shopId 校验逻辑（带 Redis 缓存）==========
+        // ========== shopId 校验逻辑 ==========
         boolean isSuperAdmin = user.getIsSuperAdmin() != null && user.getIsSuperAdmin() == 1;
+        boolean isCustomer = "customer".equals(user.getUserType());
         String actionKey = inv.getActionKey();
 
         if (!isSuperAdmin) {
-            // /auth/info 和 /auth/shops 免 shopId 校验（用户尚未选择店铺，需要这些接口获取信息）
-            if (!"/api/auth/info".equals(actionKey) && !"/api/auth/shops".equals(actionKey)) {
+            // /auth/info、/auth/shops 和 /mp/auth/info 免 shopId 校验
+            if (!"/api/auth/info".equals(actionKey) && !"/api/auth/shops".equals(actionKey)
+                && !"/api/mp/auth/info".equals(actionKey)) {
                 if (shopId == null) {
                     controller.renderJson(new ApiReturn()
                         .addMsg("请选择店铺后再操作")
                         .fail());
                     return;
                 }
-                // 从 Redis 缓存查询用户有权访问的店铺列表
-                String shopAccessKey = "staff_shops:" + user.getId() + ":" + shopId;
-                Boolean hasAccess = Redis.call(j -> j.exists(shopAccessKey));
-                if (!hasAccess) {
-                    long count = Db.queryLong(
-                        "SELECT COUNT(*) FROM staff_shops WHERE staff_id = ? AND shop_id = ?",
-                        user.getId(), shopId
-                    );
-                    if (count == 0) {
-                        count = Db.queryLong(
-                            "SELECT COUNT(*) FROM shops WHERE id = ? AND owner_staff_id = ? AND is_deleted = 0",
-                            shopId, user.getId()
-                        );
-                    }
-                    if (count == 0) {
+
+                if (isCustomer) {
+                    // 顾客：shopId 在登录时已确定（user.loginShopId），只校验店铺是否仍有效
+                    long shopCount = Db.queryLong(
+                        "SELECT COUNT(*) FROM shops WHERE id = ? AND is_deleted = 0",
+                        shopId);
+                    if (shopCount == 0) {
                         controller.renderJson(new ApiReturn()
-                            .addMsg("无权访问该店铺")
+                            .addMsg("店铺不存在或已关闭")
                             .fail());
                         return;
                     }
-                    final BigInteger finalShopId = shopId;
-                    Redis.call(j -> {
-                        j.setex(shopAccessKey, 86400, "1");
-                        return null;
-                    });
+                    user.setLoginShopId(shopId);
+                } else {
+                    // 员工/商户：通过 staff_shops 或 shops.owner_staff_id 校验
+                    String shopAccessKey = "staff_shops:" + user.getId() + ":" + shopId;
+                    Boolean hasAccess = Redis.call(j -> j.exists(shopAccessKey));
+                    if (!hasAccess) {
+                        long count = Db.queryLong(
+                            "SELECT COUNT(*) FROM staff_shops WHERE staff_id = ? AND shop_id = ?",
+                            user.getId(), shopId
+                        );
+                        if (count == 0) {
+                            count = Db.queryLong(
+                                "SELECT COUNT(*) FROM shops WHERE id = ? AND owner_staff_id = ? AND is_deleted = 0",
+                                shopId, user.getId()
+                            );
+                        }
+                        if (count == 0) {
+                            controller.renderJson(new ApiReturn()
+                                .addMsg("无权访问该店铺")
+                                .fail());
+                            return;
+                        }
+                        final BigInteger finalShopId = shopId;
+                        Redis.call(j -> {
+                            j.setex(shopAccessKey, 86400, "1");
+                            return null;
+                        });
+                    }
+                    user.setLoginShopId(shopId);
                 }
-                user.setLoginShopId(shopId);
             }
         }
 

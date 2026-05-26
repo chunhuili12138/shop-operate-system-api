@@ -443,9 +443,26 @@ public class SystemService {
     }
 
     /**
-     * 微信登录
+     * 微信登录（管理平台员工端，保留原逻辑）
      */
     public Map<String, Object> wxLogin(String code) throws Exception {
+        return wxLoginInternal(code, "staff", null);
+    }
+
+    /**
+     * 微信登录（小程序端统一入口）
+     * @param code 微信授权 code
+     * @param userType 用户类型 "customer" / "staff"
+     * @param shopId 可选，店铺ID。为null时仅返回 openid + 店铺列表
+     */
+    public Map<String, Object> mpWxLogin(String code, String userType, BigInteger shopId) throws Exception {
+        return wxLoginInternal(code, userType, shopId);
+    }
+
+    /**
+     * 微信登录核心逻辑
+     */
+    private Map<String, Object> wxLoginInternal(String code, String userType, BigInteger shopId) throws Exception {
         Prop p = PropKit.useFirstFound("start-config-prod.txt", "start-config-dev.txt");
         String appId = p.get("appId");
         String appSecret = p.get("appSecret");
@@ -468,6 +485,139 @@ public class SystemService {
 
         String openId = json.get("openid").getAsString();
 
+        // ===== 小程序：无 shopId 时仅返回 openid + 店铺列表 =====
+        if (shopId == null && "customer".equals(userType)) {
+            List<Record> shops = getMpShopsByOpenid(openId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("openid", openId);
+            data.put("shops", shops);
+            return new HashMap<String, Object>() {{
+                put("success", true);
+                put("data", data);
+            }};
+        }
+
+        // ===== customer 登录流程 =====
+        if ("customer".equals(userType) && shopId != null) {
+            return customerWxLogin(openId, shopId, tokenExpireSeconds);
+        }
+
+        // ===== staff 登录流程（原有逻辑） =====
+        return staffWxLogin(openId, tokenExpireSeconds);
+    }
+
+    /**
+     * 顾客微信登录
+     */
+    private Map<String, Object> customerWxLogin(String openId, BigInteger shopId, int tokenExpireSeconds) {
+        // 0. 校验店铺是否存在
+        Record shop = Db.findById("shops", shopId);
+        if (shop == null || shop.getInt("is_deleted") == 1) {
+            return new HashMap<String, Object>() {{
+                put("success", false);
+                put("code", 200);
+                put("msg", "店铺不存在或已关闭");
+            }};
+        }
+
+        // 1. 查找该 openid 在此店铺的顾客记录
+        Record customer = Db.findFirst(
+            "SELECT * FROM customers WHERE wechat_openid = ? AND shop_id = ? AND is_deleted = 0",
+            openId, shopId);
+
+        // 2. 未找到则自动注册
+        if (customer == null) {
+            com.shopoperate.app.AppCustomerService appSvc = com.shopoperate.app.AppCustomerService.me;
+            customer = appSvc.registerByWechat(openId, "微信用户", null, shopId);
+        }
+
+        BigInteger customerId = customer.getBigInteger("id");
+        String nickname = customer.getStr("nickname");
+        String avatar = customer.getStr("avatar_url");
+        String phone = customer.getStr("phone");
+
+        // 3. 检测是否也是员工（同店铺 phone 匹配）
+        int isStaff = 0;
+        if (phone != null && !phone.isEmpty()) {
+            long count = Db.queryLong(
+                "SELECT COUNT(*) FROM staff s " +
+                "INNER JOIN staff_shops ss ON s.id = ss.staff_id " +
+                "WHERE s.phone = ? AND ss.shop_id = ? AND s.is_deleted = 0 AND s.status = 1",
+                phone, shopId);
+            if (count > 0) {
+                isStaff = 1;
+            }
+        }
+
+        // 4. 构建 User
+        User user = new User();
+        user.setId(customerId);
+        user.setCustomerId(customerId);
+        user.setUserType("customer");
+        user.setIsStaff(isStaff);
+        user.setUsername("");
+        user.setName(nickname);
+        user.setNickname(nickname);
+        user.setPhone(phone);
+        user.setAvatar(avatar);
+        user.setStatus(1);
+        user.setIsBan(0);
+        user.setBossStatus(0);
+        user.setIsSuperAdmin(0);
+        user.setLoginShopId(shopId);
+        user.setLoginTime(new Date());
+
+        // 5. 生成 token
+        String token = Tool.getUUId();
+        String refreshToken = Tool.getUUId();
+        user.setToken(token);
+        user.setRefreshToken(refreshToken);
+
+        long now = System.currentTimeMillis();
+        long expires = now + (tokenExpireSeconds * 1000L);
+
+        JsonObject userJson = new Gson().toJsonTree(user).getAsJsonObject();
+        Redis.call(j -> j.setex("token:" + token, tokenExpireSeconds, userJson.toString()));
+        Redis.call(j -> j.setex("refresh:" + refreshToken, REFRESH_TOKEN_EXPIRE_SECONDS, token));
+        Redis.call(j -> j.setex("token_ref:" + token, tokenExpireSeconds, refreshToken));
+
+        // 6. 构建返回
+        Map<String, Object> customerInfo = new HashMap<>();
+        customerInfo.put("id", customerId);
+        customerInfo.put("nickname", nickname);
+        customerInfo.put("avatar", avatar);
+        customerInfo.put("phone", phone);
+
+        Map<String, Object> shopInfo = new HashMap<>();
+        if (shop != null && shop.getInt("is_deleted") == 0) {
+            shopInfo.put("id", shop.getBigInteger("id"));
+            shopInfo.put("name", shop.getStr("name"));
+            shopInfo.put("status", shop.getInt("status"));
+            shopInfo.put("address", shop.getStr("address"));
+            shopInfo.put("contactPhone", shop.getStr("contact_phone"));
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userInfo", user);
+        data.put("token", token);
+        data.put("refreshToken", refreshToken);
+        data.put("expires", new Date(expires));
+        data.put("userType", "customer");
+        data.put("isStaff", isStaff);
+        data.put("customerInfo", customerInfo);
+        data.put("shopInfo", shopInfo);
+        data.put("shops", Collections.singletonList(shopInfo));
+
+        return new HashMap<String, Object>() {{
+            put("success", true);
+            put("data", data);
+        }};
+    }
+
+    /**
+     * 员工微信登录（原有逻辑）
+     */
+    private Map<String, Object> staffWxLogin(String openId, int tokenExpireSeconds) {
         StaffAccounts account = new StaffAccounts().dao().findFirst(
             "SELECT * FROM staff_accounts WHERE wechat_openid = ? AND is_deleted = 0",
             openId
@@ -501,6 +651,8 @@ public class SystemService {
 
         User user = new User();
         user.setId(staff.getId());
+        user.setUserType(isSuperAdmin ? "admin" : "staff");
+        user.setIsStaff(1);
         user.setUsername(account.getUsername());
         user.setName(staff.getName());
         user.setNickname(staff.getName());
@@ -543,6 +695,41 @@ public class SystemService {
             put("success", true);
             put("data", data);
         }};
+    }
+
+    /**
+     * 根据 openid 查询可访问的店铺列表（顾客 + 员工双来源）
+     */
+    private List<Record> getMpShopsByOpenid(String openId) {
+        Set<BigInteger> shopIds = new LinkedHashSet<>();
+        List<Record> result = new ArrayList<>();
+
+        // 来源1：customers 表中该 openid 关联的店铺
+        List<Record> customerShops = Db.find(
+            "SELECT s.* FROM shops s " +
+            "INNER JOIN customers c ON s.id = c.shop_id " +
+            "WHERE c.wechat_openid = ? AND c.is_deleted = 0 AND s.is_deleted = 0",
+            openId);
+        for (Record s : customerShops) {
+            if (shopIds.add(s.getBigInteger("id"))) {
+                result.add(s);
+            }
+        }
+
+        // 来源2：staff_accounts → staff_shops → shops
+        List<Record> staffShops = Db.find(
+            "SELECT s.* FROM shops s " +
+            "INNER JOIN staff_shops ss ON s.id = ss.shop_id " +
+            "INNER JOIN staff_accounts sa ON sa.staff_id = ss.staff_id " +
+            "WHERE sa.wechat_openid = ? AND s.is_deleted = 0 AND sa.is_deleted = 0",
+            openId);
+        for (Record s : staffShops) {
+            if (shopIds.add(s.getBigInteger("id"))) {
+                result.add(s);
+            }
+        }
+
+        return result;
     }
 
     /**

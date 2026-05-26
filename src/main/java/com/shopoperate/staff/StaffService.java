@@ -136,6 +136,11 @@ public class StaffService {
                 Db.save("staff_shops", ss);
             }
 
+            // 反向员工自动识别：同店铺内已有顾客的 wechat_openid → 写入 staff_accounts
+            if (phone != null && !phone.isEmpty() && shopId != null) {
+                matchCustomerByPhoneAndShop(phone, shopId, staffId);
+            }
+
             return true;
         });
     }
@@ -149,6 +154,7 @@ public class StaffService {
         // 先查旧 shopId，用于失效缓存
         Record oldShopRec = Db.findFirst("SELECT shop_id FROM staff_shops WHERE staff_id = ?", staffId);
         BigInteger oldShopId = oldShopRec != null ? oldShopRec.getBigInteger("shop_id") : null;
+        final boolean phoneProvided = phone != null && !phone.isEmpty();
 
         boolean ok = Db.tx(() -> {
             Record staff = Db.findById("staff", staffId);
@@ -183,7 +189,13 @@ public class StaffService {
             return true;
         });
 
-        if (ok && oldShopId != null) CacheUtil.evictShopAccess(staffId, oldShopId);
+        if (ok) {
+            if (oldShopId != null) CacheUtil.evictShopAccess(staffId, oldShopId);
+            // 反向员工自动识别：手机号变更时检测同店铺顾客
+            if (phoneProvided && oldShopId != null) {
+                matchCustomerByPhoneAndShop(phone, oldShopId, staffId);
+            }
+        }
         return ok;
     }
 
@@ -271,5 +283,21 @@ public class StaffService {
         Db.update("DELETE FROM staff_schedules WHERE staff_id = ?", staffId);
 
         return oldShopId;
+    }
+
+    /**
+     * 反向员工自动识别：同店铺内已有顾客的 wechat_openid → 写入 staff_accounts
+     */
+    private void matchCustomerByPhoneAndShop(String phone, BigInteger shopId, BigInteger staffId) {
+        if (phone == null || phone.isEmpty()) return;
+        Record matchedCustomer = Db.findFirst(
+            "SELECT * FROM customers WHERE phone = ? AND shop_id = ? " +
+            "AND wechat_openid IS NOT NULL AND is_deleted = 0 LIMIT 1",
+            phone, shopId);
+        if (matchedCustomer != null) {
+            Db.update(
+                "UPDATE staff_accounts SET wechat_openid = ? WHERE staff_id = ? AND wechat_openid IS NULL",
+                matchedCustomer.getStr("wechat_openid"), staffId);
+        }
     }
 }
