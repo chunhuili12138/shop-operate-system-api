@@ -143,6 +143,34 @@ public abstract class BaseShops<M extends BaseShops<M>> extends Model<M> impleme
 		return getStr("sign_photo");
 	}
 	
+	/**
+	 * 店铺Logo路径
+	 */
+	public void setLogo(java.lang.String logo) {
+		set("logo", logo);
+	}
+	
+	/**
+	 * 店铺Logo路径
+	 */
+	public java.lang.String getLogo() {
+		return getStr("logo");
+	}
+	
+	/**
+	 * 小程序太阳码路径
+	 */
+	public void setMpQrcodePath(java.lang.String mpQrcodePath) {
+		set("mp_qrcode_path", mpQrcodePath);
+	}
+	
+	/**
+	 * 小程序太阳码路径
+	 */
+	public java.lang.String getMpQrcodePath() {
+		return getStr("mp_qrcode_path");
+	}
+	
 	public void setIsDeleted(java.lang.Integer isDeleted) {
 		set("is_deleted", isDeleted);
 	}

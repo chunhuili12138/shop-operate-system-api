@@ -130,6 +130,20 @@ public abstract class BasePackages<M extends BasePackages<M>> extends Model<M> i
 	}
 	
 	/**
+	 * 套餐封面图
+	 */
+	public void setImage(java.lang.String image) {
+		set("image", image);
+	}
+	
+	/**
+	 * 套餐封面图
+	 */
+	public java.lang.String getImage() {
+		return getStr("image");
+	}
+	
+	/**
 	 * 是否启用
 	 */
 	public void setIsActive(java.lang.Integer isActive) {
