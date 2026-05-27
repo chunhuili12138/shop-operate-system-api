@@ -42,7 +42,10 @@ public class MpShopController extends Controller {
         }
 
         if (openid == null || openid.isEmpty()) {
-            renderJson(new ApiReturn().addData("list", new ArrayList<>()).addData("total", 0).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", new ArrayList<>());
+                put("total", 0);
+            }}).success());
             return;
         }
 
@@ -75,7 +78,10 @@ public class MpShopController extends Controller {
                 }
             }
 
-            renderJson(new ApiReturn().addData("list", result).addData("total", result.size()).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", result);
+                put("total", result.size());
+            }}).success());
         } catch (Exception e) {
             log.error("获取店铺列表异常", e);
             renderJson(new ApiReturn().addMsg("系统异常").serverErr());

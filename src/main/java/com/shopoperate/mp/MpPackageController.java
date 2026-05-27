@@ -34,7 +34,7 @@ public class MpPackageController extends Controller {
 
         int page = getParaToInt("page", 1);
         int size = getParaToInt("size", 20);
-        Integer type = getParaToInt("type");
+        String type = getPara("type");
 
         try {
             StringBuilder where = new StringBuilder("WHERE p.shop_id = ? AND p.is_active = 1 AND p.is_deleted = 0");
@@ -55,8 +55,12 @@ public class MpPackageController extends Controller {
                 list.add(MpHelper.packageToMap(p));
             }
 
-            renderJson(new ApiReturn().addData("list", list).addData("total", pg.getTotalRow())
-                .addData("page", page).addData("size", size).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", list);
+                put("total", (int)pg.getTotalRow());
+                put("page", page);
+                put("size", size);
+            }}).success());
         } catch (Exception e) {
             log.error("套餐列表异常", e);
             renderJson(new ApiReturn().addMsg("系统异常").serverErr());

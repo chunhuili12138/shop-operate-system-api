@@ -40,6 +40,7 @@ public class MpStaffController extends Controller {
             d.put("todayCheckins", Db.queryLong("SELECT COUNT(*) FROM game_sessions WHERE shop_id = ? AND DATE(start_time) = CURDATE() AND is_deleted = 0", shopId));
             d.put("queueCount", Db.queryLong("SELECT COUNT(*) FROM queue_entries WHERE shop_id = ? AND status = 1 AND is_deleted = 0", shopId));
             d.put("pendingFeedbacks", Db.queryLong("SELECT COUNT(*) FROM feedbacks WHERE shop_id = ? AND status = 0 AND is_deleted = 0", shopId));
+            d.put("monthCheckins", Db.queryLong("SELECT COUNT(*) FROM game_sessions WHERE shop_id = ? AND status = 2 AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m') AND is_deleted = 0", shopId));
             List<Record> active = Db.find("SELECT gs.*, c.nickname, pkg.name AS package_name FROM game_sessions gs LEFT JOIN customers c ON gs.customer_id = c.id LEFT JOIN customer_sessions cs ON gs.customer_session_id = cs.id LEFT JOIN purchases pr ON cs.purchase_id = pr.id LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE gs.shop_id = ? AND gs.status = 1 AND gs.is_deleted = 0 ORDER BY gs.start_time DESC", shopId);
             List<Map<String, Object>> al = new ArrayList<>();
             for (Record r : active) { Map<String, Object> m = new HashMap<>(); m.put("id", r.getBigInteger("id")); m.put("customerId", r.getBigInteger("customer_id")); m.put("customerName", r.getStr("nickname")); m.put("packageName", r.getStr("package_name")); m.put("startTime", r.getDate("start_time")); al.add(m); }
@@ -79,7 +80,21 @@ public class MpStaffController extends Controller {
                 Page<Record> pg = Db.paginate(page, size, "SELECT *",
                     "FROM customers WHERE shop_id = ? AND is_deleted = 0 AND (nickname LIKE ? OR phone LIKE ?) ORDER BY created_at DESC",
                     shopId, "%" + keyword + "%", "%" + keyword + "%");
-                renderJson(new ApiReturn().addData("list", pg.getList()).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());
+                List<Map<String, Object>> list = new ArrayList<>();
+                for (Record r : pg.getList()) {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", r.getBigInteger("id"));
+                    m.put("nickname", r.getStr("nickname"));
+                    m.put("phone", r.getStr("phone"));
+                    m.put("avatar", r.getStr("avatar_url"));
+                    list.add(m);
+                }
+                renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                    put("list", list);
+                    put("total", (int)pg.getTotalRow());
+                    put("page", page);
+                    put("size", size);
+                }}).success());
             } else {
                 renderJson(new ApiReturn().addMsg("请输入搜索关键词").fail());
             }
@@ -102,9 +117,33 @@ public class MpStaffController extends Controller {
             Record lp = Db.findFirst("SELECT balance_after FROM points_records WHERE customer_id = ? ORDER BY created_at DESC LIMIT 1", customerId);
             d.put("points", lp != null ? lp.getInt("balance_after") : 0);
             d.put("availableSessions", Db.queryLong("SELECT COUNT(*) FROM customer_sessions WHERE customer_id = ? AND status = 1 AND is_deleted = 0", customerId));
-            List<Record> purchases = Db.find("SELECT pr.*, pkg.name AS package_name FROM purchases pr LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE pr.customer_id = ? AND pr.is_deleted = 0 ORDER BY pr.created_at DESC LIMIT 10", customerId);
+            List<Record> purchasesRaw = Db.find("SELECT pr.*, pkg.name AS package_name FROM purchases pr LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE pr.customer_id = ? AND pr.is_deleted = 0 ORDER BY pr.created_at DESC LIMIT 10", customerId);
+            List<Map<String, Object>> purchases = new ArrayList<>();
+            for (Record r : purchasesRaw) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("packageId", r.getBigInteger("package_id"));
+                m.put("packageName", r.getStr("package_name"));
+                m.put("totalAmount", r.getBigDecimal("total_amount"));
+                m.put("paidAmount", r.getBigDecimal("paid_amount"));
+                m.put("status", r.getInt("status"));
+                m.put("startDate", r.getDate("start_date"));
+                purchases.add(m);
+            }
             d.put("purchases", purchases);
-            List<Record> gameSessions = Db.find("SELECT gs.*, pkg.name AS package_name FROM game_sessions gs LEFT JOIN customer_sessions cs ON gs.customer_session_id = cs.id LEFT JOIN purchases pr ON cs.purchase_id = pr.id LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE gs.customer_id = ? AND gs.is_deleted = 0 ORDER BY gs.start_time DESC LIMIT 10", customerId);
+
+            List<Record> gameSessionsRaw = Db.find("SELECT gs.*, pkg.name AS package_name FROM game_sessions gs LEFT JOIN customer_sessions cs ON gs.customer_session_id = cs.id LEFT JOIN purchases pr ON cs.purchase_id = pr.id LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE gs.customer_id = ? AND gs.is_deleted = 0 ORDER BY gs.start_time DESC LIMIT 10", customerId);
+            List<Map<String, Object>> gameSessions = new ArrayList<>();
+            for (Record r : gameSessionsRaw) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("customerSessionId", r.getBigInteger("customer_session_id"));
+                m.put("packageName", r.getStr("package_name"));
+                m.put("startTime", r.getDate("start_time"));
+                m.put("endTime", r.getDate("end_time"));
+                m.put("status", r.getInt("status"));
+                gameSessions.add(m);
+            }
             d.put("gameSessions", gameSessions);
             renderJson(new ApiReturn().addData("data", d).success());
         } catch (Exception e) { log.error("顾客详情异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
@@ -116,13 +155,25 @@ public class MpStaffController extends Controller {
         BigInteger customerId = MpHelper.parseBigInteger(getPara("customerId"));
         if (shopId == null || customerId == null) { renderJson(new ApiReturn().addMsg("参数不完整").fail()); return; }
         try {
-            List<Record> sessions = Db.find(
+            List<Record> sessionsRaw = Db.find(
                 "SELECT cs.*, pr.package_id, pkg.name AS package_name, pkg.type AS package_type " +
                 "FROM customer_sessions cs LEFT JOIN purchases pr ON cs.purchase_id = pr.id " +
                 "LEFT JOIN packages pkg ON pr.package_id = pkg.id " +
                 "WHERE cs.customer_id = ? AND cs.shop_id = ? AND cs.status = 1 AND cs.is_deleted = 0 " +
                 "ORDER BY cs.session_date ASC", customerId, shopId);
-            renderJson(new ApiReturn().addData("list", sessions).success());
+            List<Map<String, Object>> sessions = new ArrayList<>();
+            for (Record r : sessionsRaw) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("purchaseId", r.getBigInteger("purchase_id"));
+                m.put("packageId", r.getBigInteger("package_id"));
+                m.put("packageName", r.getStr("package_name"));
+                m.put("packageType", r.getStr("package_type"));
+                m.put("sessionDate", r.getDate("session_date"));
+                m.put("status", r.getInt("status"));
+                sessions.add(m);
+            }
+            renderJson(new ApiReturn().addData("data", Collections.singletonMap("list", sessions)).success());
         } catch (Exception e) { log.error("查询顾客次卡异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 
@@ -134,7 +185,7 @@ public class MpStaffController extends Controller {
             List<Record> active = Db.find("SELECT gs.*, c.nickname, pkg.name AS package_name FROM game_sessions gs LEFT JOIN customers c ON gs.customer_id = c.id LEFT JOIN customer_sessions cs ON gs.customer_session_id = cs.id LEFT JOIN purchases pr ON cs.purchase_id = pr.id LEFT JOIN packages pkg ON pr.package_id = pkg.id WHERE gs.shop_id = ? AND gs.status = 1 AND gs.is_deleted = 0 ORDER BY gs.start_time DESC", shopId);
             List<Map<String, Object>> list = new ArrayList<>();
             for (Record r : active) { Map<String, Object> m = new HashMap<>(); m.put("id", r.getBigInteger("id")); m.put("customerId", r.getBigInteger("customer_id")); m.put("customerName", r.getStr("nickname")); m.put("packageName", r.getStr("package_name")); m.put("startTime", r.getDate("start_time")); list.add(m); }
-            renderJson(new ApiReturn().addData("list", list).success());
+            renderJson(new ApiReturn().addData("data", Collections.singletonMap("list", list)).success());
         } catch (Exception e) { log.error("场次查询异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 
@@ -212,7 +263,26 @@ public class MpStaffController extends Controller {
         try {
             Page<Record> pg = Db.paginate(page, size, "SELECT f.*, c.nickname, c.avatar_url",
                 "FROM feedbacks f LEFT JOIN customers c ON f.customer_id = c.id WHERE f.shop_id = ? AND f.status = 0 AND f.is_deleted = 0 ORDER BY f.created_at DESC", shopId);
-            renderJson(new ApiReturn().addData("list", pg.getList()).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Record r : pg.getList()) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("feedbackType", r.getStr("feedback_type"));
+                m.put("rating", r.getInt("rating"));
+                m.put("content", r.getStr("content"));
+                m.put("replyContent", r.getStr("reply_content"));
+                m.put("status", r.getInt("status"));
+                m.put("createdAt", r.getDate("created_at"));
+                m.put("nickname", r.getStr("nickname"));
+                m.put("avatar", r.getStr("avatar_url"));
+                list.add(m);
+            }
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", list);
+                put("total", (int)pg.getTotalRow());
+                put("page", page);
+                put("size", size);
+            }}).success());
         } catch (Exception e) { log.error("待处理评价异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 

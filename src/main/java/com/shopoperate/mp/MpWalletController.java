@@ -47,7 +47,12 @@ public class MpWalletController extends Controller {
                 m.put("amount", r.getBigDecimal("amount")); m.put("balanceAfter", r.getBigDecimal("balance_after"));
                 m.put("remark", r.getStr("remark")); m.put("createdAt", r.getDate("created_at")); list.add(m);
             }
-            renderJson(new ApiReturn().addData("list", list).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", list);
+                put("total", (int)pg.getTotalRow());
+                put("page", page);
+                put("size", size);
+            }}).success());
         } catch (Exception e) { log.error("钱包流水异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 }

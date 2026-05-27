@@ -33,7 +33,10 @@ public class MpCouponsController extends Controller {
                 m.put("value", r.getBigDecimal("value")); m.put("minOrderAmount", r.getBigDecimal("min_order_amount"));
                 m.put("status", r.getInt("status")); m.put("expiresAt", r.getDate("expires_at")); result.add(m);
             }
-            renderJson(new ApiReturn().addData("list", result).addData("total", result.size()).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", result);
+                put("total", result.size());
+            }}).success());
         } catch (Exception e) { log.error("优惠券异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 }

@@ -24,7 +24,23 @@ public class MpNotificationsController extends Controller {
         try {
             Page<Record> pg = Db.paginate(page, size, "SELECT *",
                 "FROM notification_logs WHERE recipient_id = ? AND is_deleted = 0 ORDER BY created_at DESC", u.getId());
-            renderJson(new ApiReturn().addData("list", pg.getList()).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Record r : pg.getList()) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("title", r.getStr("title"));
+                m.put("content", r.getStr("content"));
+                m.put("isRead", r.getInt("is_read"));
+                m.put("recipientType", r.getInt("recipient_type"));
+                m.put("createdAt", r.getDate("created_at"));
+                list.add(m);
+            }
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", list);
+                put("total", (int)pg.getTotalRow());
+                put("page", page);
+                put("size", size);
+            }}).success());
         } catch (Exception e) { log.error("通知列表异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
     @RequireLogin @MethodValidation("PUT")
@@ -48,14 +64,28 @@ class MpSchedulesController extends Controller {
         String startDate = getPara("startDate"); String endDate = getPara("endDate");
         try {
             Record staff = Db.findFirst("SELECT s.id FROM staff s INNER JOIN staff_shops ss ON s.id = ss.staff_id WHERE s.phone = (SELECT phone FROM customers WHERE id = ? LIMIT 1) AND ss.shop_id = ? AND s.is_deleted = 0 AND s.status = 1 LIMIT 1", u.getCustomerId(), u.getLoginShopId());
-            if (staff == null) { renderJson(new ApiReturn().addData("list", Collections.emptyList()).success()); return; }
+            if (staff == null) { renderJson(new ApiReturn().addData("data", Collections.singletonMap("list", Collections.emptyList())).success()); return; }
             BigInteger staffId = staff.getBigInteger("id");
             StringBuilder w = new StringBuilder("WHERE staff_id = ? AND is_deleted = 0");
             List<Object> ps = new ArrayList<>(); ps.add(staffId);
             if (startDate != null && !startDate.isEmpty()) { w.append(" AND schedule_date >= ?"); ps.add(startDate); }
             if (endDate != null && !endDate.isEmpty()) { w.append(" AND schedule_date <= ?"); ps.add(endDate); }
-            List<Record> schedules = Db.find("SELECT * FROM staff_schedules " + w + " ORDER BY schedule_date ASC", ps.toArray());
-            renderJson(new ApiReturn().addData("list", schedules).addData("total", schedules.size()).success());
+            List<Record> schedulesRaw = Db.find("SELECT * FROM staff_schedules " + w + " ORDER BY schedule_date ASC", ps.toArray());
+            List<Map<String, Object>> schedules = new ArrayList<>();
+            for (Record r : schedulesRaw) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getBigInteger("id"));
+                m.put("scheduleDate", r.getDate("schedule_date"));
+                m.put("startTime", r.getTime("start_time"));
+                m.put("endTime", r.getTime("end_time"));
+                m.put("type", r.getInt("type"));
+                m.put("remark", r.getStr("remark"));
+                schedules.add(m);
+            }
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", schedules);
+                put("total", schedules.size());
+            }}).success());
         } catch (Exception e) { log.error("排班查询异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
 }

@@ -34,7 +34,12 @@ public class MpArticlesController extends Controller {
                 m.put("publishedAt", r.getDate("published_at")); m.put("categoryName", r.getStr("category_name"));
                 list.add(m);
             }
-            renderJson(new ApiReturn().addData("list", list).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());
+            renderJson(new ApiReturn().addData("data", new HashMap<String,Object>() {{
+                put("list", list);
+                put("total", (int)pg.getTotalRow());
+                put("page", page);
+                put("size", size);
+            }}).success());
         } catch (Exception e) { log.error("文章列表异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
     @MethodValidation("GET")
@@ -45,7 +50,7 @@ public class MpArticlesController extends Controller {
             List<Record> cats = Db.find("SELECT * FROM article_categories WHERE shop_id = ? ORDER BY sort ASC", shopId);
             List<Map<String, Object>> list = new ArrayList<>();
             for (Record r : cats) { Map<String, Object> m = new HashMap<>(); m.put("id", r.getBigInteger("id")); m.put("name", r.getStr("name")); m.put("sort", r.getInt("sort")); list.add(m); }
-            renderJson(new ApiReturn().addData("list", list).success());
+            renderJson(new ApiReturn().addData("data", Collections.singletonMap("list", list)).success());
         } catch (Exception e) { log.error("文章分类异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
     @MethodValidation("GET")
