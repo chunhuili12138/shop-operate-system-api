@@ -121,7 +121,35 @@ public class WechatApiUtil {
         return sb.toString();
     }
 
-    private static byte[] httpPost(String urlStr, String jsonBody) throws IOException {
+    /**
+     * 通过微信 code 获取手机号
+     * @param code getPhoneNumber 接口返回的 code
+     * @return 手机号，失败返回 null
+     */
+    public static String getPhoneNumber(String code) {
+        String accessToken = getAccessToken();
+        if (accessToken == null) {
+            log.error("获取手机号失败: access_token 为空");
+            return null;
+        }
+        String url = "https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=" + accessToken;
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("code", code);
+            byte[] respBytes = httpPost(url, body.toString());
+            String resp = new String(respBytes, StandardCharsets.UTF_8);
+            JsonObject json = gson.fromJson(resp, JsonObject.class);
+            if (json.has("errcode") && json.get("errcode").getAsInt() == 0 && json.has("phone_info")) {
+                return json.getAsJsonObject("phone_info").get("phoneNumber").getAsString();
+            }
+            log.error("获取手机号失败: " + resp);
+        } catch (Exception e) {
+            log.error("获取手机号异常", e);
+        }
+        return null;
+    }
+
+    public static byte[] httpPost(String urlStr, String jsonBody) throws IOException {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
