@@ -38,7 +38,7 @@ public class TradeService {
             if (pkg == null) { err[0] = "套餐不存在"; return false; }
             if (pkg.getInt("is_active") != null && pkg.getInt("is_active") != 1) { err[0] = "套餐已下架"; return false; }
             if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) { err[0] = "金额无效"; return false; }
-            int type = pkg.getInt("type");
+            String type = pkg.getStr("type");
             Date now = new Date();
             String pt = paymentType != null ? paymentType : "direct";
 
@@ -148,7 +148,7 @@ public class TradeService {
             }
 
             // 8. 生成 customer_sessions
-            int sessionCount = type == 2 ? 7 : type == 3 ? 30 : 1;
+            int sessionCount = "WEEKLY".equals(type) ? 7 : "MONTHLY".equals(type) ? 30 : 1;
             Calendar cal = Calendar.getInstance();
             for (int i = 0; i < sessionCount; i++) {
                 cal.setTime(now);

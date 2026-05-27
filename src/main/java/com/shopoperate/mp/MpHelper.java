@@ -35,7 +35,7 @@ class MpHelper {
         Map<String, Object> m = new HashMap<>();
         m.put("id", p.getBigInteger("id"));
         m.put("name", p.getStr("name"));
-        m.put("type", p.getInt("type"));
+        m.put("type", p.getStr("type"));
         m.put("price", p.getBigDecimal("price"));
         m.put("originalPrice", p.getBigDecimal("original_price"));
         m.put("durationMinutes", p.getInt("duration_minutes"));

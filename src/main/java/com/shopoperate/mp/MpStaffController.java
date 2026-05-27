@@ -111,6 +111,22 @@ public class MpStaffController extends Controller {
     }
 
     @RequireLogin @MethodValidation("GET")
+    public void customerSessions() {
+        BigInteger shopId = MpHelper.getShopId(this);
+        BigInteger customerId = MpHelper.parseBigInteger(getPara("customerId"));
+        if (shopId == null || customerId == null) { renderJson(new ApiReturn().addMsg("参数不完整").fail()); return; }
+        try {
+            List<Record> sessions = Db.find(
+                "SELECT cs.*, pr.package_id, pkg.name AS package_name, pkg.type AS package_type " +
+                "FROM customer_sessions cs LEFT JOIN purchases pr ON cs.purchase_id = pr.id " +
+                "LEFT JOIN packages pkg ON pr.package_id = pkg.id " +
+                "WHERE cs.customer_id = ? AND cs.shop_id = ? AND cs.status = 1 AND cs.is_deleted = 0 " +
+                "ORDER BY cs.session_date ASC", customerId, shopId);
+            renderJson(new ApiReturn().addData("list", sessions).success());
+        } catch (Exception e) { log.error("查询顾客次卡异常", e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
+    }
+
+    @RequireLogin @MethodValidation("GET")
     public void activeGameSessions() {
         BigInteger shopId = MpHelper.getShopId(this);
         if (shopId == null) { renderJson(new ApiReturn().addMsg("请先选择店铺").fail()); return; }
