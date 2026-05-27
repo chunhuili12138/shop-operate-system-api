@@ -74,6 +74,42 @@ public class AppCustomerController extends Controller {
     }
 
     /**
+     * 更新个人资料
+     * PUT /api/app/customer/updateProfile
+     */
+    @RequireLogin @RepeatSubmit(lockTime = 2) @MethodValidation("PUT")
+    public void updateProfile() {
+        User u = getSessionAttr("userinfo");
+        try {
+            BigInteger customerId = u.getCustomerId();
+            if (customerId == null) {
+                renderJson(new ApiReturn().addMsg("用户未找到").fail());
+                return;
+            }
+
+            String nickname = getPara("nickname");
+            String avatar = getPara("avatar");
+            Integer gender = getParaToInt("gender");
+            String birthday = getPara("birthday");
+
+            if (nickname != null && nickname.trim().isEmpty()) {
+                renderJson(new ApiReturn().addMsg("昵称不能为空").fail());
+                return;
+            }
+
+            boolean ok = s.updateProfile(customerId, nickname, avatar, gender, birthday);
+            if (ok) {
+                renderJson(new ApiReturn().success());
+            } else {
+                renderJson(new ApiReturn().addMsg("保存失败").fail());
+            }
+        } catch (Exception e) {
+            log.error("更新个人资料异常", e);
+            renderJson(new ApiReturn().addMsg("系统异常").serverErr());
+        }
+    }
+
+    /**
      * 微信一键获取手机号并绑定
      * POST /api/app/customer/getPhoneNumber
      */

@@ -117,6 +117,24 @@ public class AppCustomerService {
     }
 
     /**
+     * 更新顾客个人资料
+     */
+    public boolean updateProfile(BigInteger customerId, String nickname, String avatar, Integer gender, String birthday) {
+        Record c = Db.findFirst("SELECT * FROM customers WHERE id = ? AND is_deleted = 0", customerId);
+        if (c == null) return false;
+        boolean changed = false;
+        if (nickname != null) { c.set("nickname", nickname); changed = true; }
+        if (avatar != null) { c.set("avatar_url", avatar); changed = true; }
+        if (gender != null) { c.set("gender", gender); changed = true; }
+        if (birthday != null) { c.set("birthday", birthday); changed = true; }
+        if (changed) {
+            c.set("updated_at", new Date());
+            return Db.update("customers", c);
+        }
+        return true;
+    }
+
+    /**
      * 根据 wechatOpenid + shopId 查找已存在的顾客（微信端自动注册时使用）
      */
     public Record findByWechatOpenid(String wechatOpenid, BigInteger shopId) {
