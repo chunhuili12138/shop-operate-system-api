@@ -58,7 +58,7 @@ class MpSessionsController extends Controller {
                 Map<String, Object> m = new HashMap<>();
                 m.put("id", r.getBigInteger("id")); m.put("purchaseId", r.getBigInteger("purchase_id"));
                 m.put("packageId", r.getBigInteger("package_id")); m.put("packageName", r.getStr("package_name"));
-                m.put("packageType", r.getInt("package_type")); m.put("sessionDate", r.getDate("session_date"));
+                m.put("packageType", r.getStr("package_type")); m.put("sessionDate", r.getDate("session_date"));
                 m.put("status", r.getInt("status")); m.put("usedAt", r.getDate("used_at")); list.add(m);
             }
             renderJson(new ApiReturn().addData("list", list).addData("total", pg.getTotalRow()).addData("page", page).addData("size", size).success());

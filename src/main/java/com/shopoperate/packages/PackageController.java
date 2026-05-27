@@ -21,7 +21,7 @@ public class PackageController extends Controller {
         User u = getSessionAttr("userinfo");
         try {
             Page<Record> p = s.page(getParaToInt("page",1), getParaToInt("size",20),
-                getPara("keyword"), getParaToInt("type"), getParaToInt("status"), u.getLoginShopId());
+                getPara("keyword"), getPara("type"), getParaToInt("status"), u.getLoginShopId());
             java.util.Map<String,Object> _m=new java.util.HashMap<>(); _m.put("list",p.getList()); _m.put("total",(int)p.getTotalRow()); renderJson(new ApiReturn().addData("data",_m).success());
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("查询失败").fail()); }
     }
@@ -47,7 +47,7 @@ public class PackageController extends Controller {
             return;
         }
         try {
-            boolean ok = s.add(u.getLoginShopId(), name.trim(), getParaToInt("type",1),
+            boolean ok = s.add(u.getLoginShopId(), name.trim(), getPara("type","SINGLE"),
                 duration, new BigDecimal(getPara("price","0")),
                 parseDecimal("originalPrice"),
                 getParaToInt("maxPeoplePerSession",1), getPara("description"),
@@ -65,7 +65,7 @@ public class PackageController extends Controller {
             return;
         }
         try {
-            boolean ok = s.update(getBigInteger("packageId"), name != null ? name.trim() : null, getParaToInt("type"),
+            boolean ok = s.update(getBigInteger("packageId"), name != null ? name.trim() : null, getPara("type"),
                 duration, getPara("price")!=null?new BigDecimal(getPara("price")):null,
                 parseDecimal("originalPrice"),
                 getParaToInt("maxPeoplePerSession"), getPara("description"), getPara("image"), parseBom(), u.getLoginShopId());

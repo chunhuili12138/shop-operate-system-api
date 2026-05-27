@@ -46,17 +46,17 @@ public abstract class BasePackages<M extends BasePackages<M>> extends Model<M> i
 	}
 	
 	/**
-	 * 套餐类型: 1-单次, 2-周卡, 3-月卡
+	 * 套餐类型: SINGLE-单次, WEEKLY-周卡, MONTHLY-月卡
 	 */
-	public void setType(java.lang.Integer type) {
+	public void setType(java.lang.String type) {
 		set("type", type);
 	}
 	
 	/**
-	 * 套餐类型: 1-单次, 2-周卡, 3-月卡
+	 * 套餐类型: SINGLE-单次, WEEKLY-周卡, MONTHLY-月卡
 	 */
-	public java.lang.Integer getType() {
-		return getInt("type");
+	public java.lang.String getType() {
+		return getStr("type");
 	}
 	
 	/**

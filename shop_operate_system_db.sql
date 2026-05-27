@@ -509,7 +509,7 @@ CREATE TABLE `packages`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `shop_id` bigint UNSIGNED NOT NULL COMMENT '店铺id',
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '套餐名称',
-  `type` tinyint UNSIGNED NOT NULL COMMENT '套餐类型: 1-单次, 2-周卡, 3-月卡',
+  `type` varchar(50) NOT NULL COMMENT '套餐类型: SINGLE-单次, WEEKLY-周卡, MONTHLY-月卡',
   `duration_minutes` int UNSIGNED NULL DEFAULT NULL COMMENT '套餐时长',
   `price` decimal(10, 2) NOT NULL COMMENT '价格',
   `original_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '原价',

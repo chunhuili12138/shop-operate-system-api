@@ -11,13 +11,13 @@ import java.util.List;
 public class PackageService {
     public static final PackageService me = new PackageService();
 
-    public Page<Record> page(int pn, int ps, String keyword, Integer type, Integer status, BigInteger shopId) {
+    public Page<Record> page(int pn, int ps, String keyword, String type, Integer status, BigInteger shopId) {
         StringBuilder sb = new StringBuilder(" FROM packages WHERE is_deleted=0");
         if (shopId != null) sb.append(" AND shop_id=").append(shopId);
         if (keyword != null && !keyword.isEmpty()) {
             sb.append(" AND name LIKE '%").append(keyword.replace("'","''")).append("%'");
         }
-        if (type != null) sb.append(" AND type=").append(type);
+        if (type != null && !type.isEmpty()) sb.append(" AND type='").append(type.replace("'","''")).append("'");
         if (status != null) sb.append(" AND is_active=").append(status);
         sb.append(" ORDER BY created_at DESC");
         return Db.paginate(pn, ps, "SELECT *", sb.toString());
@@ -34,7 +34,7 @@ public class PackageService {
         return pkg;
     }
 
-    public boolean add(BigInteger shopId, String name, int type, Integer duration, BigDecimal price,
+    public boolean add(BigInteger shopId, String name, String type, Integer duration, BigDecimal price,
                        BigDecimal originalPrice, int maxPeople, String description, String image, List<Record> bom) {
         long dup = Db.queryLong("SELECT COUNT(*) FROM packages WHERE shop_id=? AND name=? AND is_deleted=0", shopId, name);
         if (dup > 0) return false;
@@ -57,7 +57,7 @@ public class PackageService {
         });
     }
 
-    public boolean update(BigInteger id, String name, Integer type, Integer duration, BigDecimal price,
+    public boolean update(BigInteger id, String name, String type, Integer duration, BigDecimal price,
                           BigDecimal originalPrice, Integer maxPeople, String description, String image, List<Record> bom, BigInteger shopId) {
         return Db.tx(() -> {
             Record p = Db.findFirst("SELECT * FROM packages WHERE id=? AND is_deleted=0 FOR UPDATE", id);

@@ -31,7 +31,7 @@ public class MpPurchasesController extends Controller {
             for (Record r : pg.getList()) {
                 Map<String, Object> m = new HashMap<>();
                 m.put("id", r.getBigInteger("id")); m.put("packageId", r.getBigInteger("package_id"));
-                m.put("packageName", r.getStr("package_name")); m.put("packageType", r.getInt("package_type"));
+                m.put("packageName", r.getStr("package_name")); m.put("packageType", r.getStr("package_type"));
                 m.put("channel", r.getStr("channel")); m.put("paymentMethod", r.getStr("payment_method"));
                 m.put("totalAmount", r.getBigDecimal("total_amount")); m.put("paidAmount", r.getBigDecimal("paid_amount"));
                 m.put("status", r.getInt("status")); m.put("startDate", r.getDate("start_date"));
