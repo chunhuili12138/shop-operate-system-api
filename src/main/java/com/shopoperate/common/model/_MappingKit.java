@@ -55,6 +55,7 @@ public class _MappingKit {
 		arp.addMapping("roles", "id", Roles.class);
 		arp.addMapping("seat_subscriptions", "id", SeatSubscriptions.class);
 		arp.addMapping("seat_subscriptions_transactions", "id", SeatSubscriptionsTransactions.class);
+		arp.addMapping("shop_faqs", "id", ShopFaqs.class);
 		arp.addMapping("shops", "id", Shops.class);
 		arp.addMapping("staff", "id", Staff.class);
 		arp.addMapping("staff_accounts", "id", StaffAccounts.class);

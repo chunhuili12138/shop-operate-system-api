@@ -130,6 +130,48 @@ public abstract class BaseShops<M extends BaseShops<M>> extends Model<M> impleme
 	}
 	
 	/**
+	 * 营业开始时间
+	 */
+	public void setOpenTime(java.lang.String openTime) {
+		set("open_time", openTime);
+	}
+	
+	/**
+	 * 营业开始时间
+	 */
+	public java.lang.String getOpenTime() {
+		return getStr("open_time");
+	}
+	
+	/**
+	 * 营业结束时间
+	 */
+	public void setCloseTime(java.lang.String closeTime) {
+		set("close_time", closeTime);
+	}
+	
+	/**
+	 * 营业结束时间
+	 */
+	public java.lang.String getCloseTime() {
+		return getStr("close_time");
+	}
+	
+	/**
+	 * 营业日(1-7对应周一到周日)
+	 */
+	public void setBusinessDays(java.lang.String businessDays) {
+		set("business_days", businessDays);
+	}
+	
+	/**
+	 * 营业日(1-7对应周一到周日)
+	 */
+	public java.lang.String getBusinessDays() {
+		return getStr("business_days");
+	}
+	
+	/**
 	 * 门头照片
 	 */
 	public void setSignPhoto(java.lang.String signPhoto) {

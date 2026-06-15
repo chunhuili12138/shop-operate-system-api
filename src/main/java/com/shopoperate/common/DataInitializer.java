@@ -519,6 +519,12 @@ public class DataInitializer {
             insertDict("payment_type", 1, "直接付款", "direct", 1);
             insertDict("payment_type", 2, "储值钱包", "wallet", 2);
             insertDict("payment_type", 3, "第三方券码", "coupon", 3);
+            // FAQ分类
+            insertDict("faq_category", 1, "通用问题", "general", 1);
+            insertDict("faq_category", 2, "价格套餐", "pricing", 2);
+            insertDict("faq_category", 3, "退款政策", "refund", 3);
+            insertDict("faq_category", 4, "店铺规则", "rules", 4);
+            insertDict("faq_category", 5, "营业时间", "hours", 5);
             return true;
         });
         System.out.println("  [数据字典] 插入完成");

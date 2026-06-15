@@ -4,8 +4,8 @@ user = root
 password = 123456
 devMode = true
 
-appId =
-appSecret =
+appId = 
+appSecret = 
 
 cryptKey = 123456
 tokenExpireSeconds = 86400
