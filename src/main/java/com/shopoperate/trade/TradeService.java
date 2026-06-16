@@ -197,7 +197,7 @@ public class TradeService {
 
             Record gs = new Record().set("shop_id",cs.get("shop_id")).set("customer_id",customerId)
                 .set("customer_session_id",customerSessionId).set("staff_id",staffId)
-                .set("start_time",new Date()).set("status",1).set("created_at",new Date());
+                .set("start_time",new Date()).set("status",1).set("is_deleted",0).set("created_at",new Date());
             Db.save("game_sessions", gs);
 
             cs.set("game_session_id", gs.getBigInteger("id"));
@@ -475,7 +475,7 @@ public class TradeService {
             Record rr = Db.findById("refund_records", refundId);
             if (rr == null || rr.getInt("status") != 1) return false;
             if (loginShopId != null && !loginShopId.equals(rr.getBigInteger("shop_id"))) return false;
-            rr.set("status", 3).set("remark", reason).set("updated_at", new Date());
+            rr.set("status", 3).set("reason", reason).set("updated_at", new Date());
             Db.update("refund_records", rr);
             BigInteger pid = rr.getBigInteger("purchase_id");
             Record p = Db.findById("purchases", pid);
