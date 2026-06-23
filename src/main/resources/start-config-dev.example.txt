@@ -1,0 +1,16 @@
+# 开发环境配置示例
+# 复制此文件为 start-config-dev.txt 并填入真实配置
+
+# ========== 数据库配置 ==========
+jdbcUrl = jdbc:mysql://localhost:3306/shop_operate_system_db?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+user = root
+password = your-password-here
+devMode = true
+
+# ========== 微信小程序配置 ==========
+appId = your-wechat-app-id
+appSecret = your-wechat-app-secret
+
+# ========== 安全配置 ==========
+cryptKey = your-crypt-key-here
+tokenExpireSeconds = 86400

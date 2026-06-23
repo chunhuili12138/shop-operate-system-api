@@ -44,7 +44,14 @@ Desktop.ini
 # Environment specific files
 .env
 *.env
-!src/main/resources/start-config-dev.txt
+.env.local
+.env.*.local
+
+# 敏感配置文件（使用.example文件作为模板）
+start-config-dev.txt
+start-config-prod.txt
+src/main/resources/start-config-dev.txt
+src/main/resources/start-config-prod.txt
 
 # Database files
 *.sql.bak
@@ -152,4 +159,3 @@ $RECYCLE.BIN/
 
 # Application specific
 config/*.properties
-!config/start-config-dev.txt
