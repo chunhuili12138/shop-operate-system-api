@@ -234,6 +234,13 @@ public class DataInitializer {
             {"166",  "26", "删除优惠券", "btn:coupon:delete", null, null, null, "4", "3"},
             {"37",   "9",  "收支明细", "finance:cashflow", "/finance/cashflow", "/src/views/finance/cashflow/index.vue", "ep/money", "6", "2"},
             {"38",   "0",  "评价反馈", "feedback:list", "/feedback", "/src/views/feedback/index.vue", "ep/comment", "12", "2"},
+            {"39",   "9",  "考勤记录", "finance:attendance", "/finance/attendance", "/src/views/finance/attendance/index.vue", "ep/stopwatch", "7", "2"},
+            {"40",   "9",  "排班管理", "finance:schedule", "/finance/schedule", "/src/views/finance/schedule/index.vue", "ep/calendar", "8", "2"},
+            {"167",  "39", "打卡签到", "btn:attendance:checkin", null, null, null, "1", "3"},
+            {"168",  "39", "签退", "btn:attendance:checkout", null, null, null, "2", "3"},
+            {"169",  "40", "新增排班", "btn:schedule:add", null, null, null, "1", "3"},
+            {"170",  "40", "编辑排班", "btn:schedule:edit", null, null, null, "2", "3"},
+            {"171",  "40", "删除排班", "btn:schedule:delete", null, null, null, "3", "3"},
         };
 
         for (String[] p : newPerms) {
@@ -274,6 +281,14 @@ public class DataInitializer {
                 }
                 // 删除优惠券按钮赋予店长(3)
                 if (pid == 166) {
+                    Db.save("role_permissions", new Record().set("role_id", 3).set("permission_id", pid));
+                }
+                // 考勤记录菜单+按钮赋予店长(3)
+                if (pid == 39 || pid == 167 || pid == 168) {
+                    Db.save("role_permissions", new Record().set("role_id", 3).set("permission_id", pid));
+                }
+                // 排班管理菜单+按钮赋予店长(3)
+                if (pid == 40 || pid == 169 || pid == 170 || pid == 171) {
                     Db.save("role_permissions", new Record().set("role_id", 3).set("permission_id", pid));
                 }
                 System.out.println("    + 新增权限: " + p[2] + " (" + p[3] + ")");
@@ -343,11 +358,13 @@ public class DataInitializer {
             28, 29, 30, 31,
             33, 37, 38,
             34,
+            39, 40,
             101,102,103,104, 156,157, 121,122,123,124,158,
             125,126,127, 128,129, 130,131, 132,133,
             134,135,136, 137,138, 139,140,
             141,142,143, 144,145,146,152,
             147,148,149, 150,151, 154,155, 108,109,153, 166,
+            168,172, 169,170,171,
         });
 
         initRolePermsIfEmpty(4, "导玩员", new int[]{
@@ -365,7 +382,9 @@ public class DataInitializer {
 
         initRolePermsIfEmpty(6, "财务", new int[]{
             6, 9, 10, 22, 28, 29, 30, 31, 33, 37,
+            39, 40,
             132,133, 147,148,149, 150,151,
+            168,172, 169,170,171,
         });
     }
 

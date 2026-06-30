@@ -335,14 +335,35 @@ public class FinanceController extends Controller {
     // ---- Attendance ----
     @RequireLogin @MethodValidation("GET") public void attendanceRecords() {
         User u = getSessionAttr("userinfo");
+        BigInteger sid = u.getLoginShopId();
         try {
-            Page<Record> p = Db.paginate(getParaToInt("page",1), getParaToInt("size",20),
-                "SELECT ar.*, s.name AS staff_name",
-                "FROM attendance_records ar LEFT JOIN staff s ON ar.staff_id=s.id WHERE ar.shop_id=? ORDER BY ar.date DESC", u.getLoginShopId());
+            String keyword = getPara("keyword");
+            String startDate = getPara("startDate");
+            String endDate = getPara("endDate");
+            Integer status = getParaToInt("status");
+
+            StringBuilder select = new StringBuilder("SELECT ar.*, s.name AS staff_name");
+            StringBuilder from = new StringBuilder(" FROM attendance_records ar LEFT JOIN staff s ON ar.staff_id=s.id WHERE ar.shop_id=" + sid);
+
+            if (keyword != null && !keyword.isEmpty()) {
+                from.append(" AND s.name LIKE '%").append(keyword.replace("'", "''")).append("%'");
+            }
+            if (startDate != null && !startDate.isEmpty()) {
+                from.append(" AND ar.date >= '").append(startDate).append("'");
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                from.append(" AND ar.date <= '").append(endDate).append("'");
+            }
+            if (status != null) {
+                from.append(" AND ar.status = ").append(status);
+            }
+            from.append(" ORDER BY ar.date DESC");
+
+            Page<Record> p = Db.paginate(getParaToInt("page",1), getParaToInt("size",20), select.toString(), from.toString());
             renderPage(p);
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("查询失败").fail()); }
     }
-    @RequireLogin @MethodValidation("POST") public void attendanceRecordsCheckIn() {
+    @RequireLogin @RequirePermission("btn:attendance:checkin") @MethodValidation("POST") public void attendanceRecordsCheckIn() {
         User u = getSessionAttr("userinfo");
         try {
             Record existing = Db.findFirst("SELECT * FROM attendance_records WHERE staff_id=? AND date=CURDATE()", u.getId());
@@ -351,7 +372,7 @@ public class FinanceController extends Controller {
                 .set("check_in_time",new Date()).set("date",new java.sql.Date(System.currentTimeMillis())).set("status",1).set("created_at",new Date())));
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
-    @RequireLogin @MethodValidation("PUT") public void attendanceRecordsCheckOut() {
+    @RequireLogin @RequirePermission("btn:attendance:checkout") @MethodValidation("PUT") public void attendanceRecordsCheckOut() {
         try { User u = getSessionAttr("userinfo");
             Record ar = Db.findById("attendance_records", getBigInteger("recordId")); if (ar==null) { renderBool(false); return; }
             if (!u.getLoginShopId().equals(ar.getBigInteger("shop_id"))) { renderBool(false); return; }
@@ -362,21 +383,42 @@ public class FinanceController extends Controller {
     // ---- Staff Schedules ----
     @RequireLogin @MethodValidation("GET") public void staffSchedules() {
         User u = getSessionAttr("userinfo");
+        BigInteger sid = u.getLoginShopId();
         try {
-            Page<Record> p = Db.paginate(getParaToInt("page",1), getParaToInt("size",20),
-                "SELECT ss.*, s.name AS staff_name",
-                "FROM staff_schedules ss LEFT JOIN staff s ON ss.staff_id=s.id WHERE ss.shop_id=? ORDER BY ss.schedule_date DESC", u.getLoginShopId());
+            String keyword = getPara("keyword");
+            String startDate = getPara("startDate");
+            String endDate = getPara("endDate");
+            Integer type = getParaToInt("type");
+
+            StringBuilder select = new StringBuilder("SELECT ss.*, s.name AS staff_name");
+            StringBuilder from = new StringBuilder(" FROM staff_schedules ss LEFT JOIN staff s ON ss.staff_id=s.id WHERE ss.shop_id=" + sid);
+
+            if (keyword != null && !keyword.isEmpty()) {
+                from.append(" AND s.name LIKE '%").append(keyword.replace("'", "''")).append("%'");
+            }
+            if (startDate != null && !startDate.isEmpty()) {
+                from.append(" AND ss.schedule_date >= '").append(startDate).append("'");
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                from.append(" AND ss.schedule_date <= '").append(endDate).append("'");
+            }
+            if (type != null) {
+                from.append(" AND ss.type = ").append(type);
+            }
+            from.append(" ORDER BY ss.schedule_date DESC");
+
+            Page<Record> p = Db.paginate(getParaToInt("page",1), getParaToInt("size",20), select.toString(), from.toString());
             renderPage(p);
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("查询失败").fail()); }
     }
-    @RequireLogin @MethodValidation("POST") public void staffSchedulesAdd() {
+    @RequireLogin @RequirePermission("btn:schedule:add") @MethodValidation("POST") public void staffSchedulesAdd() {
         renderBool(Db.save("staff_schedules", new Record().set("shop_id",shopId()).set("staff_id",getBigInteger("staffId"))
             .set("schedule_date",java.sql.Date.valueOf(getPara("scheduleDate")))
             .set("start_time",java.sql.Time.valueOf(getPara("startTime")+":00"))
             .set("end_time",java.sql.Time.valueOf(getPara("endTime")+":00"))
             .set("type",getParaToInt("type",1)).set("remark",getPara("remark")).set("created_at",new Date())));
     }
-    @RequireLogin @MethodValidation("PUT") public void staffSchedulesUpdate() {
+    @RequireLogin @RequirePermission("btn:schedule:edit") @MethodValidation("PUT") public void staffSchedulesUpdate() {
         try { User u = getSessionAttr("userinfo");
             Record ss = Db.findById("staff_schedules", getBigInteger("scheduleId")); if (ss==null) { renderBool(false); return; }
             if (!u.getLoginShopId().equals(ss.getBigInteger("shop_id"))) { renderBool(false); return; }
@@ -387,7 +429,7 @@ public class FinanceController extends Controller {
             renderBool(Db.update("staff_schedules", ss));
         } catch (Exception e) { log.error(e); renderJson(new ApiReturn().addMsg("系统异常").serverErr()); }
     }
-    @RequireLogin @MethodValidation("DELETE") public void staffSchedulesDelete() {
+    @RequireLogin @RequirePermission("btn:schedule:delete") @MethodValidation("DELETE") public void staffSchedulesDelete() {
         try { User u = getSessionAttr("userinfo");
             Record ss = Db.findById("staff_schedules", getBigInteger("scheduleId")); if (ss==null) { renderBool(false); return; }
             if (!u.getLoginShopId().equals(ss.getBigInteger("shop_id"))) { renderBool(false); return; }
@@ -515,6 +557,7 @@ public class FinanceController extends Controller {
             d.set("todayExpense", Db.queryBigDecimal("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE shop_id=? AND expense_date=CURDATE()", sid));
         } catch (Exception e) { d.set("err","today: "+e.getMessage()); }
         try {
+            d.set("monthSales", Db.queryBigDecimal("SELECT COALESCE(SUM(paid_amount),0) FROM purchases WHERE shop_id=? AND DATE_FORMAT(created_at,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m') AND status=1 AND is_deleted=0", sid));
             d.set("monthRevenue", Db.queryBigDecimal("SELECT COALESCE(SUM(amount),0) FROM revenue_records WHERE shop_id=? AND DATE_FORMAT(confirmed_at,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m')", sid));
             d.set("monthExpense", Db.queryBigDecimal("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE shop_id=? AND DATE_FORMAT(expense_date,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m')", sid));
             d.set("monthCheckins", Db.queryLong("SELECT COUNT(*) FROM game_sessions WHERE shop_id=? AND DATE_FORMAT(created_at,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m')", sid));
